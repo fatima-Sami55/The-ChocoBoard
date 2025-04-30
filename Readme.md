@@ -3,14 +3,14 @@
 
 This project is focused on analyzing chocolate sales data and developing a Shiny dashboard for visualizing key insights. The dashboard allows users to interactively explore patterns in chocolate sales, visualize the data, and understand statistical findings like regression models, confidence intervals, and more.
 
----
+--
 
 ### Group Partners
 - Fatima 23F-0791
 - Zainab 23F-0545
 - Ume Ammarah 23F-3034
 
----
+--
 
 ## Project Features
 
