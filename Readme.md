@@ -55,7 +55,8 @@ Make sure you have the following installed:
 
 4. **Run the Shiny app** using this command:
 
-   ```Rscript index.r
+   ```R
+      Rscript index.r
    ```
 
 5. **Interact with the dashboard**: The app should open in your web browser. You can now explore the chocolate sales data through interactive charts and statistical insights.
