@@ -35,7 +35,7 @@ This project is focused on analyzing chocolate sales data and developing a Shiny
 Make sure you have the following installed:
 
 - **R**: You can download R from [here](https://cran.r-project.org/)
-- **RStudio** (optional but recommended): Download from [here](https://posit.co/download/rstudio-desktop/)
+- **VSCode**: Download from [here](https://code.visualstudio.com/)
 
 ### Steps to Run the Project Locally
 
@@ -45,18 +45,17 @@ Make sure you have the following installed:
    git clone https://github.com/your-username/chocolate-sales-dashboard.git
    ```
 
-2. **Install required R packages**. Open R or RStudio and install the necessary packages by running:
+2. **Install required R packages**. Open R or VsCode terminal and install the necessary packages by running:
 
    ```R
    install.packages(c('shiny', 'ggplot2', 'dplyr', 'tidyr', 'readr'))
    ```
 
-3. **Open the project** in RStudio and navigate to the main app file `app.R`.
+3. **Open the project** in VSCode and navigate to the main app file `app.R`.
 
 4. **Run the Shiny app** using this command:
 
-   ```R
-   shiny::runApp("app.R")
+   ```Rscript index.r
    ```
 
 5. **Interact with the dashboard**: The app should open in your web browser. You can now explore the chocolate sales data through interactive charts and statistical insights.
@@ -64,24 +63,10 @@ Make sure you have the following installed:
 ## Project Structure
 
 - `app.R`: The main file containing the UI and server logic for the Shiny app.
-- `data/`: A folder containing the `chocolate_Sales.csv` file, which includes the sales data used for analysis.
-- `analysis/`: A folder for R scripts containing the statistical analysis, data manipulation, and modeling.
+- `Cleaned_Choclate_Sales.csv/`: A file, which includes the sales data used for analysis.
+- `Rplots.pdf`: A pdf file containing the statistical analysis, data manipulation, and modeling.
 - `README.md`: This file.
-- `LICENSE`: The project's license file.
 
-## How to Contribute
-
-If you'd like to contribute to this project, follow these steps:
-
-1. **Fork the repository** and create a new branch for your changes.
-2. **Make your changes** and test them thoroughly.
-3. **Submit a pull request** with a clear description of your modifications or improvements.
-
-Please ensure your code follows the project's coding style and is well-documented. We appreciate your contributions!
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 
@@ -93,6 +78,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions or feedback, feel free to open an issue in the GitHub repository or contact me directly.
 
----
 
-**Note**: Be sure to replace `your-username` with your actual GitHub username in the clone URL and any other relevant fields.
