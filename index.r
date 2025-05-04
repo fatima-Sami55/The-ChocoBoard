@@ -4,6 +4,7 @@ library(ggplot2)
 library(dplyr)
 library(skimr)       # For descriptive stats
 library(broom)       # For tidy regression output
+library(DT)          # For clean data tables
 
 # Read the data
 data <- read.csv("Cleaned_Chocolate_Sales.csv", stringsAsFactors = FALSE)
@@ -12,26 +13,71 @@ data <- read.csv("Cleaned_Chocolate_Sales.csv", stringsAsFactors = FALSE)
 data$Amount <- as.numeric(gsub("[\\$,]", "", data$Amount))
 data$Date <- as.Date(data$Date, format = "%Y-%m-%d")
 
+# Add numeric version of Date for regression
+data$NumericDate <- as.numeric(data$Date)
+
 # Precompute top 5 products
-sales_by_product <- data %>%
-  group_by(Product) %>%
-  summarise(Total_Sales = sum(Amount)) %>%
+sales_by_product <- data %>% 
+  group_by(Product) %>% 
+  summarise(Total_Sales = sum(Amount)) %>% 
   arrange(desc(Total_Sales))
 
 top_5_sales <- head(sales_by_product, 5)
 
 # Define UI
 ui <- fluidPage(
+  # Custom CSS for styling
+  tags$head(
+    tags$style(HTML("
+      body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f4f4f9;
+        color: #333;
+      }
+      .navbar {
+        background-color: #5e412f;
+        color: white;
+      }
+      .navbar a {
+        color: white;
+      }
+      .navbar a:hover {
+        background-color: #7d5a4d;
+        color: white;
+      }
+      h3, h4 {
+        color: #5e412f;
+        font-weight: bold;
+      }
+      .container-fluid {
+        padding: 30px;
+      }
+      .btn {
+        background-color: #5e412f;
+        color: white;
+        border-radius: 5px;
+      }
+      .btn:hover {
+        background-color: #7d5a4d;
+      }
+      .well {
+        background-color: #f9f7f1;
+        border: 1px solid #e0e0e0;
+        padding: 20px;
+      }
+    "))
+  ),
+  
   navbarPage(
     title = "Chocolate Sales Dashboard",
     
-    # Group details
     tabPanel("Group Details",
              fluidPage(
                h3("Group Members"),
                p("This project is developed by:"),
                tags$ul(
                  tags$li("Fatima 23F-0791"),
+                 tags$li("Aiza Khurram 23F-0575"),
                  tags$li("Zainab Noor 23F-0545"),
                  tags$li("Ume Ammarah 23F-3034")
                ),
@@ -41,7 +87,6 @@ ui <- fluidPage(
              )
     ),
     
-    # Description
     tabPanel("Description",
              fluidPage(
                h3("Data Description"),
@@ -105,7 +150,6 @@ ui <- fluidPage(
              )
     ),
     
-    # Sales Data Tab 1: Top 5 Products & Distribution
     tabPanel("Sales Data 1: Top 5 & Distribution",
              fluidPage(
                fluidRow(
@@ -126,7 +170,6 @@ ui <- fluidPage(
              )
     ),
     
-    # Sales Data Tab 2: Box Plot, Descriptive Stats, Regression
     tabPanel("Sales Data 2: Box Plot, Stats & Regression",
              fluidPage(
                fluidRow(
@@ -136,7 +179,7 @@ ui <- fluidPage(
                hr(),
                fluidRow(
                  column(12, h4("Descriptive Stats")),
-                 column(12, verbatimTextOutput("descStats"))
+                 column(12, DT::dataTableOutput("descStats"))
                ),
                hr(),
                fluidRow(
@@ -155,72 +198,101 @@ ui <- fluidPage(
 
 # Server logic
 server <- function(input, output) {
-
+  
   # Bar chart
   output$barChart <- renderPlot({
     ggplot(top_5_sales, aes(x = reorder(Product, Total_Sales), y = Total_Sales, fill = Product)) +
       geom_bar(stat = "identity") +
       theme_minimal() +
       labs(title = "Top 5 Best-Selling Products", x = "Product", y = "Total Sales") +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+            plot.title = element_text(face = "bold", size = 16),
+            axis.title = element_text(size = 14),
+            axis.text = element_text(size = 12))
   })
 
   # Pie chart
   output$pieChart <- renderPlot({
-    pie_data <- top_5_sales %>%
+    pie_data <- top_5_sales %>% 
       mutate(Percent = Total_Sales / sum(Total_Sales) * 100)
     
     ggplot(pie_data, aes(x = "", y = Percent, fill = Product)) +
       geom_bar(width = 1, stat = "identity") +
       coord_polar("y") +
       theme_void() +
-      labs(title = "Sales Distribution of Top 5 Products")
+      labs(title = "Sales Distribution of Top 5 Products") +
+      theme(plot.title = element_text(face = "bold", size = 16))
   })
 
   # Box plot
   output$boxPlot <- renderPlot({
-    ggplot(data, aes(y = Amount)) +
-      geom_boxplot(fill = "orange", color = "black") +
+    ggplot(data, aes(x = Product, y = Amount)) +
+      geom_boxplot(fill = "#7d5a4d", color = "#5e412f") +
       theme_minimal() +
-      labs(title = "Boxplot of Amount", y = "Amount")
+      labs(title = "Boxplot of Amount by Product", x = "Product", y = "Amount") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+            plot.title = element_text(face = "bold", size = 16),
+            axis.title = element_text(size = 14),
+            axis.text = element_text(size = 12))
   })
 
   # Descriptive stats
-  output$descStats <- renderPrint({
-    skimr::skim(data$Amount)
+  output$descStats <- DT::renderDataTable({
+    skimr::skim(data) %>% 
+      filter(skim_type == "numeric") %>% 
+      select(skim_variable, numeric.mean, numeric.sd, numeric.p0, numeric.p50, numeric.p100)
+  }, options = list(dom = 't'))
+
+  # Regression summary (clean format using broom)
+  output$regressionSummary <- renderPrint({
+    model <- lm(Amount ~ NumericDate, data = data)
+    broom::tidy(model)
   })
 
-  # Confidence Interval
-  output$confInterval <- renderPrint({
-    t.test(data$Amount)
-  })
+  # Regression plot with equation
+  # Regression plot with refined equation and R-squared
+output$regPlot <- renderPlot({
+  model <- lm(Amount ~ NumericDate, data = data)
+  intercept <- coef(model)[1]
+  slope <- coef(model)[2]
+  r_squared <- summary(model)$r.squared
+  
+  eq <- bquote(italic(y) == .(round(slope, 2)) %.% italic(x) + .(round(intercept, 2)) ~ "," ~ R^2 == .(round(r_squared, 3)))
+  
+  ggplot(data, aes(x = Date, y = Amount)) +
+    geom_point(alpha = 0.6, color = "#5e412f") +
+    geom_smooth(method = "lm", color = "#7d5a4d", fill = "#c57f6a", se = TRUE) +
+    annotate("text", x = min(data$Date, na.rm = TRUE), 
+             y = max(data$Amount, na.rm = TRUE), 
+             label = as.expression(eq), 
+             hjust = 0, vjust = 1.2, size = 5, color = "darkred") +
+    labs(
+      title = "Linear Regression: Sales Amount Over Time",
+      x = "Date",
+      y = "Sales Amount (USD)"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(face = "bold", size = 16),
+      axis.title = element_text(size = 14),
+      axis.text = element_text(size = 12)
+    )
+})
 
-  # Probability distribution
+
+  # Distribution plot
   output$distPlot <- renderPlot({
     ggplot(data, aes(x = Amount)) +
-      geom_histogram(aes(y = ..density..), bins = 30, fill = "skyblue", color = "black") +
+      geom_histogram(aes(y = ..density..), bins = 30, fill = "#7d5a4d", color = "#5e412f") +
       stat_function(fun = dnorm,
                     args = list(mean = mean(data$Amount, na.rm = TRUE),
                                 sd = sd(data$Amount, na.rm = TRUE)),
                     col = "red", size = 1.2) +
       theme_minimal() +
-      labs(title = "Normal Distribution Fit for Amount", x = "Amount", y = "Density")
+      labs(title = "Normal Distribution Fit to Sales Amount", x = "Amount", y = "Density")
   })
-
-  # Regression modeling
-  output$regressionSummary <- renderPrint({
-    model <- lm(Amount ~ Date, data = data)
-    summary(model)
-  })
-
-  output$regPlot <- renderPlot({
-    model <- lm(Amount ~ Date, data = data)
-    ggplot(data, aes(x = Date, y = Amount)) +
-      geom_point() +
-      geom_smooth(method = "lm", col = "blue") +
-      labs(title = "Regression Plot: Sales Amount vs Date", x = "Date", y = "Amount")
-  })
+  
 }
 
-# Run the application
+# Run the app
 shinyApp(ui = ui, server = server)
