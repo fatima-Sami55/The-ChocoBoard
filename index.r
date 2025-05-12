@@ -282,32 +282,42 @@ server <- function(input, output) {
             axis.text = element_text(size = 12))
   })
 
-  # Descriptive stats with confidence interval
-  output$descStats <- DT::renderDataTable({
-    amount <- data$Amount[!is.na(data$Amount)]
-    
-    # Calculate statistics
-    stats <- data.frame(
-      Statistic = c("Mean", "Median", "Mode", "Minimum", "Maximum", "Range", 
-                    "Variance", "Standard Deviation", "Skewness"),
-      Value = c(
-        mean(amount),
-        median(amount),
-        get_mode(amount),
-        min(amount),
-        max(amount),
-        max(amount) - min(amount),
-        var(amount),
-        sd(amount),
-        moments::skewness(amount)
-      )
+ # Filter data for amounts greater than $5000
+filtered_data <- data %>% filter(Amount > 5000)
+
+# Descriptive stats with filtered data (including Confidence Intervals for the Mean)
+output$descStats <- DT::renderDataTable({
+  amount <- filtered_data$Amount[!is.na(filtered_data$Amount)]
+  
+  # Calculate Confidence Interval for the Mean
+  ci_result <- t.test(amount)
+  lower_ci <- round(ci_result$conf.int[1], 2)  # Lower bound of CI
+  upper_ci <- round(ci_result$conf.int[2], 2)  # Upper bound of CI
+  
+  # Calculate other statistics
+  stats <- data.frame(
+    Statistic = c("Mean", "Median", "Mode", "Minimum", "Maximum", "Range", 
+                  "Variance", "Standard Deviation", "Skewness", 
+                  "Confidence Interval (95%)"),
+    Value = c(
+      round(mean(amount), 2),            # Mean
+      round(median(amount), 2),          # Median
+      get_mode(amount),                  # Mode
+      round(min(amount), 2),             # Minimum
+      round(max(amount), 2),             # Maximum
+      round(max(amount) - min(amount), 2),  # Range
+      round(var(amount), 2),             # Variance
+      round(sd(amount), 2),              # Standard Deviation
+      round(moments::skewness(amount), 2),  # Skewness
+      paste("(", lower_ci, ", ", upper_ci, ")", sep = "")  # Confidence Interval
     )
-    
-    # Round values to 2 decimal places
-    stats$Value <- round(stats$Value, 2)
-    
-    stats
-  }, options = list(dom = 't'))
+  )
+  
+  # Return the data table with rounded values
+  stats
+}, options = list(dom = 't'))
+
+
 
   # Regression summary (clean format using broom)
   output$regressionSummary <- renderPrint({
