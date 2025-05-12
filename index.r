@@ -5,6 +5,7 @@ library(dplyr)
 library(skimr)       # For descriptive stats
 library(broom)       # For tidy regression output
 library(DT)          # For clean data tables
+library(moments)     # For skewness calculation
 
 # Read the data
 data <- read.csv("Cleaned_Chocolate_Sales.csv", stringsAsFactors = FALSE)
@@ -102,7 +103,7 @@ ui <- fluidPage(
                br(),
                h4("Data Cleaning Process:"),
                tags$ul(
-                 tags$li("Amount Formatting: The sales amount was cleaned by removing dollar signs ($) and commas (,), ensuring it's in numeric format for analysis."),
+                 tags$li("Amount Formatting: The sales amo`unt was cleaned by removing dollar signs ($) and commas (,), ensuring it's in numeric format for analysis."),
                  tags$li("Date Formatting: Dates were converted into the correct Date type format to facilitate time-based analysis."),
                  tags$li("Missing Values: Any missing or NA values in the data were either handled appropriately or removed to avoid any biases in the analysis.")
                ),
@@ -183,11 +184,6 @@ ui <- fluidPage(
                ),
                hr(),
                fluidRow(
-                 column(12, h4("Descriptive Stats")),
-                 column(12, DT::dataTableOutput("descStats"))
-               ),
-               hr(),
-               fluidRow(
                  column(12, h4("Regression Summary: Sales vs Date")),
                  column(12, verbatimTextOutput("regressionSummary"))
                ),
@@ -197,12 +193,27 @@ ui <- fluidPage(
                  column(12, plotOutput("regPlot"))
                )
              )
+    ),
+    
+    tabPanel("Statistical Measures",
+             fluidPage(
+               h3("Descriptive Statistical Measures (All Sales)"),
+               fluidRow(
+                 column(12, DT::dataTableOutput("descStats"))
+               )
+             )
     )
   )
 )
 
 # Server logic
 server <- function(input, output) {
+  
+  # Function to calculate mode
+  get_mode <- function(x) {
+    ux <- unique(x)
+    ux[which.max(tabulate(match(x, ux)))]
+  }
   
   # Bar chart
   output$barChart <- renderPlot({
@@ -271,11 +282,31 @@ server <- function(input, output) {
             axis.text = element_text(size = 12))
   })
 
-  # Descriptive stats
+  # Descriptive stats with confidence interval
   output$descStats <- DT::renderDataTable({
-    skimr::skim(data) %>% 
-      filter(skim_type == "numeric") %>% 
-      select(skim_variable, numeric.mean, numeric.sd, numeric.p0, numeric.p50, numeric.p100)
+    amount <- data$Amount[!is.na(data$Amount)]
+    
+    # Calculate statistics
+    stats <- data.frame(
+      Statistic = c("Mean", "Median", "Mode", "Minimum", "Maximum", "Range", 
+                    "Variance", "Standard Deviation", "Skewness"),
+      Value = c(
+        mean(amount),
+        median(amount),
+        get_mode(amount),
+        min(amount),
+        max(amount),
+        max(amount) - min(amount),
+        var(amount),
+        sd(amount),
+        moments::skewness(amount)
+      )
+    )
+    
+    # Round values to 2 decimal places
+    stats$Value <- round(stats$Value, 2)
+    
+    stats
   }, options = list(dom = 't'))
 
   # Regression summary (clean format using broom)
