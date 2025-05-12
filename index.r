@@ -1,7 +1,7 @@
 # Load required libraries
-library(shiny)
+library(shiny)            # used for web applications / package 
 library(ggplot2)
-library(dplyr)
+library(dplyr)          
 library(skimr)       # For descriptive stats
 library(broom)       # For tidy regression output
 library(DT)          # For clean data tables
@@ -166,6 +166,11 @@ ui <- fluidPage(
                  column(12, h4("Distribution of Sales Amount")),
                  column(12, plotOutput("distPlot"))
                ),
+               hr(),
+               fluidRow(
+                 column(12, h4("Histogram of Sales by Date")),
+                 column(12, plotOutput("histogramPlot"))
+               ),
                hr()
              )
     ),
@@ -224,6 +229,36 @@ server <- function(input, output) {
       theme(plot.title = element_text(face = "bold", size = 16))
   })
 
+  # Distribution plot
+  output$distPlot <- renderPlot({
+    ggplot(data, aes(x = Amount)) +
+      geom_histogram(aes(y = ..density..), bins = 30, fill = "#7d5a4d", color = "#5e412f") +
+      stat_function(fun = dnorm,
+                    args = list(mean = mean(data$Amount, na.rm = TRUE),
+                                sd = sd(data$Amount, na.rm = TRUE)),
+                    col = "red", size = 1.2) +
+      theme_minimal() +
+      labs(title = "Normal Distribution Fit to Sales Amount", x = "Amount", y = "Density") +
+      theme(
+        plot.title = element_text(face = "bold", size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12)
+      )
+  })
+
+  # Histogram plot (modified to show NumericDate)
+  output$histogramPlot <- renderPlot({
+    ggplot(data, aes(x = NumericDate)) +
+      geom_histogram(bins = 50, fill = "#4a7043", color = "#2e482b") +
+      theme_minimal() +
+      labs(title = "Histogram of Sales by Date", x = "Date (Numeric)", y = "Frequency") +
+      theme(
+        plot.title = element_text(face = "bold", size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12)
+      )
+  })
+
   # Box plot
   output$boxPlot <- renderPlot({
     ggplot(data, aes(x = Product, y = Amount)) +
@@ -249,49 +284,34 @@ server <- function(input, output) {
     broom::tidy(model)
   })
 
-  # Regression plot with equation
   # Regression plot with refined equation and R-squared
-output$regPlot <- renderPlot({
-  model <- lm(Amount ~ NumericDate, data = data)
-  intercept <- coef(model)[1]
-  slope <- coef(model)[2]
-  r_squared <- summary(model)$r.squared
-  
-  eq <- bquote(italic(y) == .(round(slope, 2)) %.% italic(x) + .(round(intercept, 2)) ~ "," ~ R^2 == .(round(r_squared, 3)))
-  
-  ggplot(data, aes(x = Date, y = Amount)) +
-    geom_point(alpha = 0.6, color = "#5e412f") +
-    geom_smooth(method = "lm", color = "#7d5a4d", fill = "#c57f6a", se = TRUE) +
-    annotate("text", x = min(data$Date, na.rm = TRUE), 
-             y = max(data$Amount, na.rm = TRUE), 
-             label = as.expression(eq), 
-             hjust = 0, vjust = 1.2, size = 5, color = "darkred") +
-    labs(
-      title = "Linear Regression: Sales Amount Over Time",
-      x = "Date",
-      y = "Sales Amount (USD)"
-    ) +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(face = "bold", size = 16),
-      axis.title = element_text(size = 14),
-      axis.text = element_text(size = 12)
-    )
-})
-
-
-  # Distribution plot
-  output$distPlot <- renderPlot({
-    ggplot(data, aes(x = Amount)) +
-      geom_histogram(aes(y = ..density..), bins = 30, fill = "#7d5a4d", color = "#5e412f") +
-      stat_function(fun = dnorm,
-                    args = list(mean = mean(data$Amount, na.rm = TRUE),
-                                sd = sd(data$Amount, na.rm = TRUE)),
-                    col = "red", size = 1.2) +
+  output$regPlot <- renderPlot({
+    model <- lm(Amount ~ NumericDate, data = data)
+    intercept <- coef(model)[1]
+    slope <- coef(model)[2]
+    r_squared <- summary(model)$r.squared
+    
+    eq <- bquote(italic(y) == .(round(slope, 2)) %.% italic(x) + .(round(intercept, 2)) ~ "," ~ R^2 == .(round(r_squared, 3)))
+    
+    ggplot(data, aes(x = Date, y = Amount)) +
+      geom_point(alpha = 0.6, color = "#5e412f") +
+      geom_smooth(method = "lm", color = "#7d5a4d", fill = "#c57f6a", se = TRUE) +
+      annotate("text", x = min(data$Date, na.rm = TRUE), 
+               y = max(data$Amount, na.rm = TRUE), 
+               label = as.expression(eq), 
+               hjust = 0, vjust = 1.2, size = 5, color = "darkred") +
+      labs(
+        title = "Linear Regression: Sales Amount Over Time",
+        x = "Date",
+        y = "Sales Amount (USD)"
+      ) +
       theme_minimal() +
-      labs(title = "Normal Distribution Fit to Sales Amount", x = "Amount", y = "Density")
+      theme(
+        plot.title = element_text(face = "bold", size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12)
+      )
   })
-  
 }
 
 # Run the app
